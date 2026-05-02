@@ -1,0 +1,23 @@
+# meta
+ip.txt
+
+# Pycharm trash
+.idea
+__pycache__/
+
+# virtualenv
+.venv
+venv/
+venv
+
+# Distribution
+.DS_Store
+.cache/
+
+# coverage
+.coverage
+
+# vscode
+.vscode/
+settings.json
+

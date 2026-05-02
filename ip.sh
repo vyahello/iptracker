@@ -308,17 +308,35 @@ if ! [[ -d $tunneler_dir ]]; then
     mkdir $tunneler_dir
 fi
 if ! [[ -f $tunneler_dir/ngrok ]] ; then
-    nongrok=true
+    if command -v ngrok > /dev/null 2>&1; then
+        nongrok=false
+        ngrok_command="ngrok"
+    else
+        nongrok=true
+    fi
 else
     nongrok=false
 fi
 if ! [[ -f $tunneler_dir/cloudflared ]] ; then
-    nocf=true
+    if command -v cloudflared > /dev/null 2>&1; then
+        nocf=false
+        cf_command="cloudflared"
+    else
+        nocf=true
+    fi
 else
     nocf=false
 fi
 if ! [[ -f $tunneler_dir/loclx ]] ; then
-    noloclx=true
+    if command -v loclx > /dev/null 2>&1; then
+        noloclx=false
+        loclx_command="loclx"
+    elif command -v localxpose > /dev/null 2>&1; then
+        noloclx=false
+        loclx_command="localxpose"
+    else
+        noloclx=true
+    fi
 else
     noloclx=false
 fi
@@ -593,7 +611,7 @@ $cf_command tunnel -url "${local_url}" &> "$tunneler_dir/cf.log" &
 $loclx_command tunnel --raw-mode http --https-redirect $args -t "${local_url}" &> "$tunneler_dir/loclx.log" &
 sleep 10
 cd "$HOME/.site"
-ngroklink=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[-0-9a-z.]*.ngrok.io")
+ngroklink=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[-0-9a-z.]*ngrok[-0-9a-z.]*")
 if ! [ -z "$ngroklink" ]; then
     ngrokcheck=true
 else
@@ -637,7 +655,7 @@ elif ( $ngrokcheck && $loclxcheck &&  ! $cfcheck ); then
     echo -e "${success}Ngrok and Loclx have started successfully!\n"
     url_manager "$ngroklink" 1 2
     url_manager "$loclxlink" 3 4
-elif ( $cfcheck && $loclxcheck &&  ! $loclxcheck ); then
+elif ( $cfcheck && $loclxcheck &&  ! $ngrokcheck ); then
     echo -e "${success}Cloudflared and Loclx have started successfully!\n"
     url_manager "$cflink" 1 2
     url_manager "$loclxlink" 3 4

