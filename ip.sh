@@ -164,20 +164,22 @@ url_manager() {
     fi
     echo -e "${success}URL ${2} > ${1}\n"
     midver=${mwebsite#http://}
-    midver=${mwebsite#https://}
+    midver=${midver#https://}
     prefix=$(echo "$midver" | sed s+"/"+"-"+g | sed s/" "/"-"/g)
-    echo -e "${success}URL ${3} > https://${prefix}@${1#https://}\n"
+    masked="${prefix}@${1#https://}"
+    echo -e "${success}URL ${3} > https://${masked}\n"
     netcheck
-    if echo "$1" | grep -q "$TUNNELER"; then
-        shortened=$(curl -s "https://is.gd/create.php?format=simple&url=${1}")
-    else 
-        shortened=""
+    shortened=$(curl -s --max-time 8 "https://is.gd/create.php?format=simple&url=${1}")
+    if [ -z "$shortened" ] || ! echo "$shortened" | grep -q "https://"; then
+        shortened=$(curl -s --max-time 8 "https://tinyurl.com/api-create.php?url=${1}")
     fi
-    if ! [ -z "$shortened" ]; then
-        if echo "$shortened" | head -n1 | grep -q "https://"; then
-            echo -e "${success}Shortened > ${shortened}\n"
-            echo -e "${success}Masked > https://${prefix}@${shortened#https://}\n"
-        fi
+    if [ -z "$shortened" ] || ! echo "$shortened" | grep -q "https://"; then
+        shortened=$(curl -s --max-time 8 "https://v.gd/create.php?format=simple&url=${1}")
+    fi
+    if ! [ -z "$shortened" ] && echo "$shortened" | head -n1 | grep -q "https://"; then
+        echo -e "${success}Shortened > ${shortened}\n"
+        masked_short="${prefix}@${shortened#https://}"
+        echo -e "${success}Masked > https://${masked_short}\n"
     fi
 }
 
@@ -643,31 +645,31 @@ for second in {1..10}; do
     fi
 done
 if ( $ngrokcheck && $cfcheck && $loclxcheck ); then
-    echo -e "${success}Ngrok, Cloudflared and Loclx have started successfully!\n"
-    url_manager "$cflink" 1 2
-    url_manager "$ngroklink" 3 4
-    url_manager "$loclxlink" 5 6
+    echo -e "${success}Ngrok, Loclx and Cloudflared have started successfully!\n"
+    url_manager "$ngroklink" 1 2
+    url_manager "$loclxlink" 3 4
+    url_manager "$cflink" 5 6
 elif ( $ngrokcheck && $cfcheck &&  ! $loclxcheck ); then
     echo -e "${success}Ngrok and Cloudflared have started successfully!\n"
-    url_manager "$cflink" 1 2
-    url_manager "$ngroklink" 3 4
+    url_manager "$ngroklink" 1 2
+    url_manager "$cflink" 3 4
 elif ( $ngrokcheck && $loclxcheck &&  ! $cfcheck ); then
     echo -e "${success}Ngrok and Loclx have started successfully!\n"
     url_manager "$ngroklink" 1 2
     url_manager "$loclxlink" 3 4
 elif ( $cfcheck && $loclxcheck &&  ! $ngrokcheck ); then
-    echo -e "${success}Cloudflared and Loclx have started successfully!\n"
-    url_manager "$cflink" 1 2
-    url_manager "$loclxlink" 3 4
+    echo -e "${success}Loclx and Cloudflared have started successfully!\n"
+    url_manager "$loclxlink" 1 2
+    url_manager "$cflink" 3 4
 elif ( $ngrokcheck && ! $cfcheck &&  ! $loclxcheck ); then
     echo -e "${success}Ngrok has started successfully!\n"
     url_manager "$ngroklink" 1 2
-elif ( $cfcheck &&  ! $ngrokcheck &&  ! $loclxcheck ); then
-    echo -e "${success}Cloudflared has started successfully!\n"
-    url_manager "$cflink" 1 2
 elif ( $loclxcheck && ! $ngrokcheck &&  ! $cfcheck ); then
     echo -e "${success}Loclx has started successfully!\n"
     url_manager "$loclxlink" 1 2
+elif ( $cfcheck &&  ! $ngrokcheck &&  ! $loclxcheck ); then
+    echo -e "${success}Cloudflared has started successfully!\n"
+    url_manager "$cflink" 1 2
 elif ! ( $ngrokcheck && $cfcheck && $loclxcheck ) ; then
     echo -e "${error}Tunneling failed! Start your own port forwarding/tunneling service at port ${PORT}\n";
 fi
